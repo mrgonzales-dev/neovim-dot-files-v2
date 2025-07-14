@@ -1,4 +1,8 @@
--- Kenneth G. NEOVIM CONFIG FILE VERSION 2
+-- Kenneth G. NEOVIM CONFIG FILE
+-- Disable termination
+-- disable lower casing and upper casing shortcut
+vim.keymap.set("v", "u", "<nop>") -- prevent lowercasing in visual
+vim.keymap.set("v", "U", "<nop>") -- prevent uppercasing in visual
 
 vim.keymap.set("n", "<C-z>", "", { noremap = true })
 vim.keymap.set("v", "<C-z>", "", { noremap = true })
@@ -187,7 +191,7 @@ vim.opt.rtp:prepend(lazypath)
 --
 --  To update plugins you can run
 --    :Lazy update
---
+
 -- NOTE: Here is where you install your plugins.
 require("lazy").setup({
 	-- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
@@ -223,27 +227,37 @@ require("lazy").setup({
 	},
 
 	{
-		"zbirenbaum/copilot.lua",
-		cmd = "Copilot",
-		build = ":Copilot auth",
+		"Exafunction/windsurf.vim",
 		event = "BufReadPost",
-		opts = {
-			suggestion = {
-				enabled = not vim.g.ai_cmp,
-				auto_trigger = true,
-				hide_during_completion = vim.g.ai_cmp,
-				keymap = {
-					accept = "<M-p>", -- handled by nvim-cmp / blink.cmp
-					next = "<M-]>",
-					prev = "<M-[>",
-				},
-			},
-			panel = { enabled = false },
-			filetypes = {
+		cmd = "Codeium",
+		build = ":Codeium Auth",
+		enabled = not vim.g.ai_cmp,
+		config = function()
+			-- Limit to certain filetypes
+			vim.g.codeium_filetypes = {
 				markdown = true,
 				help = true,
-			},
-		},
+				-- add more if needed
+			}
+
+			-- Keybindings to match Copilot style
+			vim.keymap.set("i", "<M-m>", function()
+				return vim.fn["codeium#Accept"]()
+			end, { expr = true, silent = true })
+
+			vim.keymap.set("i", "<M-]>", function()
+				return vim.fn
+			end, { expr = true, silent = true })
+
+			vim.keymap.set("i", "<M-[>", function()
+				return vim.fn["codeium#CycleCompletions"](-1)
+			end, { expr = true, silent = true })
+
+			-- Optional: clear suggestions (like <C-x>)
+			vim.keymap.set("i", "<C-x>", function()
+				return vim.fn["codeium#Clear"]()
+			end, { expr = true, silent = true })
+		end,
 	},
 
 	"hrsh7th/nvim-cmp",
@@ -807,7 +821,8 @@ require("lazy").setup({
 		end,
 	},
 
-	{ -- Autoformat
+	{
+		-- Autoformat
 		"stevearc/conform.nvim",
 		lazy = false,
 		keys = {
@@ -823,21 +838,25 @@ require("lazy").setup({
 		opts = {
 			notify_on_error = false,
 			format_on_save = function(bufnr)
-				-- Disable "format_on_save lsp_fallback" for languages that don't
-				-- have a well standardized coding style. You can add additional
-				-- languages here or re-enable it for the disabled ones.
 				local disable_filetypes = { c = true, cpp = true }
 				return {
-					timeout_ms = 500,
+					timeout_ms = 5000,
 					lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
 				}
 			end,
 			formatters_by_ft = {
 				html = { "prettier" },
 				php = { "php_cs_fixer", "pint", stop_after_first = true },
-				blade = { "php_cs_fixer", "pint", stop_after_first = true },
+				blade = { "blade-formatter" }, -- ✅ use blade-formatter here
 				lua = { "stylua" },
 				javascript = { "prettierd", "prettier", stop_after_first = true },
+			},
+			formatters = {
+				["blade-formatter"] = {
+					command = "blade-formatter",
+					args = { "--stdin", "--stdin-filepath", "$FILENAME" },
+					stdin = true,
+				},
 			},
 		},
 	},
@@ -984,41 +1003,89 @@ require("lazy").setup({
 		opts = { signs = false },
 	},
 
-	{ -- Collection of various small independent plugins/modules
-		"echasnovski/mini.nvim",
+	-- { -- Collection of various small independent plugins/modules
+	-- 	"echasnovski/mini.nvim",
+	-- 	config = function()
+	-- 		-- Better Around/Inside textobjects
+	-- 		--
+	-- 		-- Examples:
+	-- 		--  - va)  - [V]isually select [A]round [)]paren
+	-- 		--  - yinq - [Y]ank [I]nside [N]ext [']quote
+	-- 		--  - ci'  - [C]hange [I]nside [']quote
+	-- 		require("mini.ai").setup({ n_lines = 500 })
+	--
+	-- 		-- Add/delete/replace surroundings (brackets, quotes, etc.)
+	-- 		--
+	-- 		-- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
+	-- 		-- - sd'   - [S]urround [D]elete [']quotes
+	-- 		-- - sr)'  - [S]urround [R]eplace [)] [']
+	-- 		require("mini.surround").setup()
+	--
+	-- 		-- Simple and easy statusline.
+	-- 		--  You could remove this setup call if you don't like it,
+	-- 		--  and try some other statusline plugin
+	-- 		local statusline = require("mini.statusline")
+	-- 		-- set use_icons to true if you have a Nerd Font
+	-- 		statusline.setup({ use_icons = vim.g.have_nerd_font })
+	--
+	-- 		-- You can configure sections in the statusline by overriding their
+	-- 		-- default behavior. For example, here we set the section for
+	-- 		-- cursor location to LINE:COLUMN
+	-- 		---@diagnostic disable-next-line: duplicate-set-field
+	-- 		statusline.section_location = function()
+	-- 			return "%2l:%-2v"
+	-- 		end
+	--
+	-- 		-- ... and there is more!
+	-- 		--  Check out: https://github.com/echasnovski/mini.nvim
+	-- 	end,
+	-- },
+
+	{
+		"nvim-lualine/lualine.nvim",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			-- Better Around/Inside textobjects
-			--
-			-- Examples:
-			--  - va)  - [V]isually select [A]round [)]paren
-			--  - yinq - [Y]ank [I]nside [N]ext [']quote
-			--  - ci'  - [C]hange [I]nside [']quote
-			require("mini.ai").setup({ n_lines = 500 })
+			require("lualine").setup({
+				options = {
+					theme = "auto", -- fallback, we'll override colors manually
+					component_separators = { left = "", right = "" },
+					section_separators = { left = "", right = "" },
+					globalstatus = true,
+				},
+				sections = {
+					lualine_a = { { "mode", icon = "" } },
+					lualine_b = { "branch", "diff", "diagnostics" },
+					lualine_c = { { "filename", path = 1 } },
+					lualine_x = { "encoding", "fileformat", "filetype" },
+					lualine_y = { "progress" },
+					lualine_z = { "location" },
+				},
+				inactive_sections = {
+					lualine_a = {},
+					lualine_b = {},
+					lualine_c = { "filename" },
+					lualine_x = { "location" },
+					lualine_y = {},
+					lualine_z = {},
+				},
+				extensions = { "nvim-tree", "lazy", "fugitive" },
+			})
 
-			-- Add/delete/replace surroundings (brackets, quotes, etc.)
-			--
-			-- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-			-- - sd'   - [S]urround [D]elete [']quotes
-			-- - sr)'  - [S]urround [R]eplace [)] [']
-			require("mini.surround").setup()
+			-- Custom purple-black theme override
+			local custom_theme = require("lualine.themes.auto")
 
-			-- Simple and easy statusline.
-			--  You could remove this setup call if you don't like it,
-			--  and try some other statusline plugin
-			local statusline = require("mini.statusline")
-			-- set use_icons to true if you have a Nerd Font
-			statusline.setup({ use_icons = vim.g.have_nerd_font })
+			custom_theme.normal.a.bg = "#8b5cf6" -- violet-500
+			custom_theme.normal.a.fg = "#1e1e2e" -- near black
+			custom_theme.insert.a.bg = "#7c3aed" -- violet-600
+			custom_theme.visual.a.bg = "#6d28d9" -- violet-700
+			custom_theme.replace.a.bg = "#9333ea" -- violet-500 deeper
+			custom_theme.command.a.bg = "#a855f7" -- violet-400
 
-			-- You can configure sections in the statusline by overriding their
-			-- default behavior. For example, here we set the section for
-			-- cursor location to LINE:COLUMN
-			---@diagnostic disable-next-line: duplicate-set-field
-			statusline.section_location = function()
-				return "%2l:%-2v"
-			end
-
-			-- ... and there is more!
-			--  Check out: https://github.com/echasnovski/mini.nvim
+			require("lualine").setup({
+				options = {
+					theme = custom_theme,
+				},
+			})
 		end,
 	},
 	-- json formatter
@@ -1115,6 +1182,10 @@ require("lazy").setup({
 			lazy = "💤 ",
 		},
 	},
+})
+
+require("gtag").setup({
+	key = "<leader>.",
 })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
