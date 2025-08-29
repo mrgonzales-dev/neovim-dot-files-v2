@@ -1,4 +1,11 @@
 -- Kenneth G. NEOVIM CONFIG FILE
+
+-- Enable autoread
+vim.o.autoread = true
+
+-- Auto check for file changes on focus or cursor events
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, { command = "checktime" })
+
 -- Disable termination
 -- disable lower casing and upper casing shortcut
 vim.keymap.set("v", "u", "<nop>") -- prevent lowercasing in visual
