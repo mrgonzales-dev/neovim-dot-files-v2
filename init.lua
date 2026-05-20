@@ -29,6 +29,10 @@ vim.keymap.set("n", "K", "3k", { noremap = true, silent = true })
 vim.keymap.set("v", "K", "3k", { noremap = true, silent = true })
 vim.keymap.set("x", "K", "3k", { noremap = true, silent = true })
 
+-- Horizontal Scroll
+vim.keymap.set("n", "<A-h>", "zh", { noremap = true, silent = true, desc = "Scroll left faster" })
+vim.keymap.set("n", "<A-l>", "zl", { noremap = true, silent = true, desc = "Scroll right faster" })
+
 -- Windows Save
 vim.keymap.set("n", "<C-s>", ":w<CR>", { noremap = true })
 
@@ -72,6 +76,9 @@ vim.g.have_nerd_font = true
 
 -- Make line numbers default
 vim.opt.number = true
+
+vim.opt.sidescroll = 1 -- Scroll 1 column at a time (instead of half a screen)
+vim.opt.sidescrolloff = 10 -- Keep 10 columns of context visible around the cursor
 
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
@@ -843,9 +850,14 @@ require("lazy").setup({
 			},
 		},
 		opts = {
-			notify_on_error = false,
+			notify_on_error = true,
 			format_on_save = function(bufnr)
-				local disable_filetypes = { c = true, cpp = true }
+				local ft = vim.bo[bufnr].filetype
+				if ft == "php" or ft == "blade" then
+					return
+				end
+				-- Disable formatting for certain filetypes
+				local disable_filetypes = { c = true, cpp = true, blade = true }
 				return {
 					timeout_ms = 5000,
 					lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
@@ -854,16 +866,9 @@ require("lazy").setup({
 			formatters_by_ft = {
 				html = { "prettier" },
 				php = { "php_cs_fixer", "pint", stop_after_first = true },
-				blade = { "blade-formatter" }, -- ✅ use blade-formatter here
+				blade = { "blade-formatter" },
 				lua = { "stylua" },
 				javascript = { "prettierd", "prettier", stop_after_first = true },
-			},
-			formatters = {
-				["blade-formatter"] = {
-					command = "blade-formatter",
-					args = { "--stdin", "--stdin-filepath", "$FILENAME" },
-					stdin = true,
-				},
 			},
 		},
 	},
